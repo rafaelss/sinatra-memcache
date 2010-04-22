@@ -1,7 +1,5 @@
 require 'memcache'
 require 'zlib'
-#require 'rubygems'
-#require 'sinatra/base'
 
 class MemCache
   def all_keys
@@ -47,11 +45,11 @@ module Sinatra
       #
       #
       def cache(key, params = {}, &block)
-        return block.call unless options.cache_enable
+        return block.call unless settings.cache_enable
 
         opts = {
-          :expiry => options.cache_default_expiry,
-          :compress => options.cache_default_compress
+          :expiry => settings.cache_default_expiry,
+          :compress => settings.cache_default_compress
         }.merge(params)
 
         value = get(key, opts)
@@ -65,7 +63,7 @@ module Sinatra
           set(key, block.call, opts)
         end
       rescue => e
-        throw e if development?
+        throw e if settings.development? || settings.show_exceptions
         block.call
       end
 
@@ -73,7 +71,7 @@ module Sinatra
       #
       #
       def expire(p)
-        return unless options.cache_enable
+        return unless settings.cache_enable
 
         case p
         when String
@@ -83,20 +81,19 @@ module Sinatra
         end
         true
       rescue => e
-        throw e if development?
+        throw e if settings.development? or settings.show_exceptions
         false
       end
-
 
       private
 
       def client
-        options.cache_client ||= ::MemCache.new options.cache_server,
-          :namespace => options.cache_namespace
+        settings.cache_client ||= ::MemCache.new settings.cache_server,
+          :namespace => settings.cache_namespace
       end
 
       def log(msg)
-        puts "[sinatra-memcache] #{msg}" if options.cache_logging
+        puts "[sinatra-memcache] #{msg}" if settings.cache_logging
       end
 
       def get(key, opts)
@@ -139,7 +136,6 @@ module Sinatra
       app.set :cache_default_compress, false
     end
   end
-  
-  register MemCache
 
+  register MemCache
 end
