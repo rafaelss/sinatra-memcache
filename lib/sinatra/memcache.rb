@@ -45,11 +45,11 @@ module Sinatra
       #
       #
       def cache(key, params = {}, &block)
-        return block.call unless settings.cache_enable
+        return block.call unless settings.memcached?
 
         opts = {
-          :expiry => settings.cache_default_expiry,
-          :compress => settings.cache_default_compress
+          :expiry => settings.memcached_expiry,
+          :compress => settings.memcached_compress
         }.merge(params)
 
         value = get(key, opts)
@@ -62,16 +62,13 @@ module Sinatra
           log "Set: #{key}"
           set(key, block.call, opts)
         end
-      rescue => e
-        throw e if settings.development? || settings.show_exceptions
-        block.call
       end
 
       #
       #
       #
       def expire(p)
-        return unless settings.cache_enable
+        return unless settings.memcached?
 
         case p
         when String
@@ -88,12 +85,12 @@ module Sinatra
       private
 
       def client
-        settings.cache_client ||= ::MemCache.new settings.cache_server,
-          :namespace => settings.cache_namespace
+        settings.memcached_client ||= ::MemCache.new settings.memcached_server,
+          :namespace => settings.memcached_namespace
       end
 
       def log(msg)
-        puts "[sinatra-memcache] #{msg}" if settings.cache_logging
+        puts "[sinatra-memcache] #{msg}" if settings.memcached_logging?
       end
 
       def get(key, opts)
@@ -127,13 +124,13 @@ module Sinatra
     def self.registered(app)
       app.helpers MemCache::Helpers
 
-      app.set :cache_client, nil
-      app.set :cache_server, "localhost:11211"
-      app.set :cache_namespace, "sinatra-memcache"
-      app.set :cache_enable, true
-      app.set :cache_logging, true
-      app.set :cache_default_expiry, 3600
-      app.set :cache_default_compress, false
+      app.enable :memcached
+      app.set :memcached_client, nil
+      app.set :memcached_server, "localhost:11211"
+      app.set :memcached_namespace, "#{app}-memcached"
+      app.set :memcached_logging, app.logging?
+      app.set :memcached_expiry, 3600
+      app.set :memcached_compress, false
     end
   end
 

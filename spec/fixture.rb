@@ -44,6 +44,6 @@ get '/expire_re' do
 end
 
 configure do
-  set :cache_namespace, "test"
-  set :cache_logging, false
+  set :memcached_namespace, "test"
+  set :memcached_logging, false
 end
